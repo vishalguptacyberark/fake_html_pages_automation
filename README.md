@@ -123,7 +123,7 @@ https://pages.github.cyberng.com/<your-org-or-user>/<repo-name>
 `NEXT_PUBLIC_BASE_PATH` must be set to that same path before building:
 
 ```bash
-NEXT_PUBLIC_BASE_PATH=/<your-org-or-user>/<repo-name> npm run build
+NEXT_PUBLIC_BASE_PATH=/<repo-name> npm run build
 ```
 
 Then either:
