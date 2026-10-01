@@ -5,8 +5,9 @@
  *
  * QA-only success page shown after a successful login (password, TOTP, or
  * passkey). Has NO backend connection — session state is sessionStorage
- * only, and passkey bookkeeping is localStorage only (see
- * app/lib/passkeys.ts).
+ * only, and passkey setup results are never persisted anywhere (see
+ * app/lib/passkeys.ts): the details returned by the device callback are
+ * shown directly in this page's state for the current view only.
  *
  * Reload-back-to-login mechanism:
  *   1. The login page writes sessionStorage key "autofill_ok" before navigating here.
@@ -26,21 +27,20 @@
  *     decoded username, verification flag) — displayed here as proof the
  *     ceremony happened, then cleared like the rest of the session state.
  *   - A "Setup Passkey" button runs a real navigator.credentials.create()
- *     ceremony and stores only bookkeeping metadata (credential id,
- *     algorithm, timestamp) in localStorage — the public key itself is
- *     never persisted. This record is per-browser/device, so it persists
- *     across logins on this device but isn't visible on other devices.
+ *     ceremony. Nothing is persisted — not the public key, not even
+ *     bookkeeping metadata. The credential id, algorithm, and timestamp
+ *     returned by the device callback are shown directly on this page via
+ *     component state, and are gone as soon as the page is left/reloaded.
  */
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   algLabel,
-  getPasskeyRecord,
   isPasskeySupported,
   registerPasskey,
   shortCredentialId,
-  type PasskeyRecord,
+  type PasskeySetupSummary,
   type PasskeySignInSummary,
 } from '../lib/passkeys'
 
@@ -52,7 +52,7 @@ export default function HomePage() {
   const [signInSummary, setSignInSummary] = useState<PasskeySignInSummary | null>(null)
 
   const [passkeySupported, setPasskeySupported] = useState(false)
-  const [setupRecord, setSetupRecord] = useState<PasskeyRecord | null>(null)
+  const [setupRecord, setSetupRecord] = useState<PasskeySetupSummary | null>(null)
   const [setupLoading, setSetupLoading] = useState(false)
   const [setupError, setSetupError] = useState<string | null>(null)
 
@@ -78,15 +78,14 @@ export default function HomePage() {
     }
 
     setPasskeySupported(isPasskeySupported())
-    setSetupRecord(getPasskeyRecord(resolvedUsername))
 
     setReady(true)
 
     // Clear the flag when the page is hidden (covers both reload and tab-close).
     // On a hard reload the browser fires pagehide before the new page load
     // starts, so the flag is gone by the time this component runs again.
-    // Note: the localStorage passkey record is intentionally NOT cleared —
-    // it's meant to persist on this device across future logins.
+    // Note: there is no stored passkey record to clean up — nothing is
+    // ever persisted, so a reload simply loses the on-screen details.
     function handlePageHide() {
       sessionStorage.removeItem('autofill_ok')
       sessionStorage.removeItem('autofill_user')

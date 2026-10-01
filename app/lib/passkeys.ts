@@ -1,7 +1,7 @@
 /**
  * Pure-browser WebAuthn ("passkey") registration + sign-in.
  *
- * No backend, no external service, no localStorage sync between devices —
+ * No backend, no external service, no persistence of any kind —
  * every ceremony below is a *real* call into the browser's WebAuthn
  * implementation (Touch ID / Face ID / Windows Hello / a security key / a
  * password-manager extension), the browser/OS just handles it natively.
@@ -10,20 +10,20 @@
  *   - Setup ("registration") calls navigator.credentials.create(). The
  *     resulting public key is read (to confirm a real key pair came back)
  *     but is deliberately NOT persisted anywhere — this app never verifies
- *     a signature against it. Only a small bookkeeping record (credential
- *     id, algorithm, timestamp) is kept in localStorage, purely so the UI
- *     can show "Passkey added" on this device/browser later.
+ *     a signature against it, and no bookkeeping record is stored either.
+ *     The returned summary (credential id, algorithm, timestamp) is simply
+ *     handed back to the caller, which displays it directly in the UI for
+ *     the current page view only.
  *   - Sign-in is usernameless: navigator.credentials.get() is called with
  *     no `allowCredentials` restriction, so the browser/OS shows its own
  *     discoverable-credential picker across whatever passkeys exist for
  *     this origin. The signed-in username is recovered from the
  *     assertion's `userHandle` (the same bytes set as `user.id` at
  *     registration time) — no typed username is needed for this path.
- *   - Because there's no server, a device/browser that never ran the
- *     Setup flow has no local record — the sign-in ceremony can still
- *     succeed for real (e.g. a passkey synced by iCloud Keychain /
- *     Google Password Manager to a new device), it just won't have a
- *     local "added on this device" badge to show alongside it.
+ *   - Because nothing is persisted locally or server-side, this page never
+ *     "remembers" a previously set-up passkey across reloads — only the
+ *     details received directly from the current device/browser callback
+ *     are ever shown, and only for the lifetime of that page view.
  *
  * Requires a secure context (HTTPS or localhost). Works on GitHub Pages
  * (always HTTPS). On S3, only works if the bucket is served over HTTPS
@@ -96,23 +96,6 @@ export function algLabel(alg: number | null): string {
   }
 }
 
-// ─── localStorage bookkeeping (per browser/device only) ──────────────────────
-
-function passkeyStorageKey(username: string): string {
-  return `passkey_${username.trim().toLowerCase()}`
-}
-
-export function getPasskeyRecord(username: string): PasskeyRecord | null {
-  if (typeof window === 'undefined') return null
-  const raw = localStorage.getItem(passkeyStorageKey(username))
-  if (!raw) return null
-  try {
-    return JSON.parse(raw) as PasskeyRecord
-  } catch {
-    return null
-  }
-}
-
 // ─── Error mapping ────────────────────────────────────────────────────────────
 
 /**
@@ -146,8 +129,9 @@ export function mapWebAuthnError(err: unknown): string {
 
 /**
  * Runs a real navigator.credentials.create() ceremony for `username`.
- * Deliberately does not persist the public key — only enough metadata to
- * show a "Passkey added" confirmation on this device/browser later.
+ * Deliberately does not persist the public key, or anything else — the
+ * returned summary is meant to be shown directly in the UI by the caller
+ * for this page view only, never written to storage.
  */
 export async function registerPasskey(username: string): Promise<PasskeySetupSummary> {
   if (!isPasskeySupported()) {
@@ -191,8 +175,6 @@ export async function registerPasskey(username: string): Promise<PasskeySetupSum
     alg,
     createdAt: Date.now(),
   }
-
-  localStorage.setItem(passkeyStorageKey(username), JSON.stringify(record))
 
   return { username, ...record }
 }
