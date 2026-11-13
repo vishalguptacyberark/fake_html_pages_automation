@@ -52,6 +52,8 @@ the password `QaAuto#2024!`:
 
 - `testuser1@autofill` … `testuser5@autofill` — no TOTP
 - `testuser1@landandcatch` … `testuser5@landandcatch` — no TOTP
+  (`testuser1@landandcatch` also accepts `QaAuto#2024!_edited`, for Land & Catch
+  credential-update tests)
 - `testuser1@totp` … `testuser5@totp` — requires TOTP, each with its own secret
 
 Every input field exposes matching `id`, `name`, `aria-label`, and

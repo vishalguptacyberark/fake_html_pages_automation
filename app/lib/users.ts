@@ -29,9 +29,17 @@ export interface UserRecord {
   group: UserGroup
   /** Base32 TOTP secret. Only present for the `totp` group. */
   totpSecret?: string
+  /**
+   * Extra passwords also accepted at /login. Land & Catch update tests log in
+   * again with a changed password and need that login to succeed too.
+   */
+  altPasswords?: string[]
 }
 
 export const PASSWORD = 'QaAuto#2024!'
+
+/** Second accepted password for testuser1@landandcatch (Land & Catch update flows). */
+export const LANDANDCATCH_EDITED_PASSWORD = 'QaAuto#2024!_edited'
 
 const USER_COUNT = 5
 
@@ -60,6 +68,7 @@ export const LANDANDCATCH_USERS: UserRecord[] = Array.from(
     username: `testuser${i + 1}@landandcatch`,
     password: PASSWORD,
     group: 'landandcatch' as const,
+    ...(i === 0 ? { altPasswords: [LANDANDCATCH_EDITED_PASSWORD] } : {}),
   })
 )
 
@@ -82,6 +91,10 @@ export const ALL_USERS: UserRecord[] = [
 export function findUser(username: string): UserRecord | undefined {
   const needle = username.trim().toLowerCase()
   return ALL_USERS.find(u => u.username.toLowerCase() === needle)
+}
+
+export function passwordMatches(user: UserRecord, password: string): boolean {
+  return user.password === password || (user.altPasswords ?? []).includes(password)
 }
 
 export function requiresTotp(username: string): boolean {

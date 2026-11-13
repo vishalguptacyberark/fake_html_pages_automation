@@ -90,7 +90,7 @@ function GroupTable({
                   {u.username}
                 </td>
                 <td className="px-4 py-3 font-mono text-gray-800">
-                  {u.password}
+                  {[u.password, ...(u.altPasswords ?? [])].join(' / ')}
                 </td>
                 {showSecret && (
                   <>
