@@ -12,6 +12,7 @@
  *   testuser1@totp          … testuser5@totp           (TOTP required)
  *
  * All users share the password: QaAuto#2024! (see app/lib/users.ts PASSWORD)
+ * testuser1@landandcatch also accepts QaAuto#2024!_edited (LANDANDCATCH_EDITED_PASSWORD)
  * Full list with passwords + TOTP secrets: /users
  *
  * On success the page sets a sessionStorage flag and performs a client-side
@@ -35,7 +36,7 @@
 import { useEffect, useState, useRef, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { findUser, requiresTotp } from '../lib/users'
+import { findUser, passwordMatches, requiresTotp } from '../lib/users'
 import { isPasskeySupported, signInWithPasskey } from '../lib/passkeys'
 
 export default function LoginPage() {
@@ -82,7 +83,7 @@ export default function LoginPage() {
     // Deliberate brief delay so the button press feels tactile
     setTimeout(() => {
       const user = findUser(username)
-      if (user && user.password === password) {
+      if (user && passwordMatches(user, password)) {
         sessionStorage.setItem('autofill_user', user.username)
         sessionStorage.removeItem('passkey_summary')
         if (requiresTotp(user.username)) {
